@@ -1,0 +1,81 @@
+{
+  "name": "WhatsApp AI Bot (OpenRouter)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wa-bot",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [280, 300],
+      "webhookId": "wa-bot"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: \"meta-llama/llama-3.1-8b-instruct:free\",\n  messages: [\n    { role: \"system\", content: \"You are a helpful, concise WhatsApp assistant. Keep replies short and clear.\" },\n    { role: \"user\", content: $json.body.text }\n  ]\n}) }}",
+        "options": {}
+      },
+      "id": "openrouter-node",
+      "name": "OpenRouter Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [520, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "OpenRouter API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const choice = $input.first().json.choices?.[0];\nconst reply = choice?.message?.content?.trim() || \"I couldn't come up with a reply.\";\nreturn [{ json: { reply } }];"
+      },
+      "id": "format-node",
+      "name": "Format Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { reply: $json.reply } }}",
+        "options": {}
+      },
+      "id": "respond-node",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "OpenRouter Chat", "type": "main", "index": 0 }]]
+    },
+    "OpenRouter Chat": {
+      "main": [[{ "node": "Format Reply", "type": "main", "index": 0 }]]
+    },
+    "Format Reply": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  }
+}

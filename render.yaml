@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: wa-bot
+    runtime: node
+    buildCommand: npm install && pip install yt-dlp
+    startCommand: node index.js
+    envVars:
+      - key: N8N_WEBHOOK_URL
+        sync: false
+      - key: BOT_PREFIX
+        value: "!"
